@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>My Base Project — demo</title>
+</head>
+<body>
+  <h1>My Base Project — demo</h1>
+  <p>Connectez votre wallet et testez une fonction simple.</p>
+
+  <button id="connect">Connect Wallet</button>
+  <div>
+    <input id="valueInput" type="number" placeholder="Nouvelle valeur" />
+    <button id="setValue">Set Value</button>
+    <button id="getValue">Get Value</button>
+  </div>
+  <pre id="output"></pre>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <script>
+    const output = document.getElementById('output');
+    let provider, signer;
+
+    document.getElementById('connect').onclick = async () => {
+      if (window.ethereum) {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        output.innerText = 'Wallet connecté: ' + (await signer.getAddress());
+      } else {
+        output.innerText = 'Aucun provider trouvé (installe MetaMask ou Coinbase Wallet).';
+      }
+    };
+
+    // Remplace cette adresse par l'adresse du contrat déployé
+    const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+    const ABI = [
+      "function setValue(uint256 _value) external",
+      "function getValue() external view returns (uint256)"
+    ];
+
+    document.getElementById('setValue').onclick = async () => {
+      try {
+        if (!signer) { output.innerText = "Connecte ton wallet d'abord"; return; }
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        const v = document.getElementById('valueInput').value;
+        const tx = await contract.setValue(v);
+        output.innerText = 'Transaction envoyée: ' + tx.hash + '\nAttente confirmation...';
+        await tx.wait();
+        output.innerText += '\nTx confirmée.';
+      } catch (e) {
+        output.innerText = 'Erreur: ' + e;
+      }
+    };
+
+    document.getElementById('getValue').onclick = async () => {
+      try {
+        if (!provider) { output.innerText = "Connecte ton wallet d'abord"; return; }
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+        const v = await contract.getValue();
+        output.innerText = 'Valeur actuelle: ' + v.toString();
+      } catch (e) {
+        output.innerText = 'Erreur: ' + e;
+      }
+    };
+  </script>
+</body>
+</html>
